@@ -13,14 +13,21 @@ class PortScanner:
 
     def _check_port(self, port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(0.5)
+        s.settimeout(0.8)
         result = s.connect_ex((self.target, port))
         if result == 0:
             try:
                 service = socket.getservbyport(port)
             except:
                 service = 'Unknown service'
-            self.open_ports.append((port, service))
+            try:
+                data = s.recv(1024)
+                banner = data.decode(errors='ignore').replace('\n', ' ').strip()
+                if not banner:
+                    banner = 'No banner (silent srvice)'
+            except:
+                banner = 'No banner response'
+            self.open_ports.append((port, service, banner))
         s.close()
 
     def run(self):
@@ -39,5 +46,7 @@ class PortScanner:
 
     def show_results(self):
         self.open_ports.sort()
-        for port, service in self.open_ports:
-            print(f'Port {port} is open ({service})')
+        print(f"\n{'PORT':<7} | {'SERVICE':<15} | {'BANNER'}")
+        for port, service, banner in self.open_ports:
+            display_banner = (banner[:55] + '...') if len(banner) > 55 else banner
+            print(f"{port:<7} | {service:<15} | {display_banner}")
