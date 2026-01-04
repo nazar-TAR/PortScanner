@@ -21,10 +21,18 @@ class PortScanner:
             except:
                 service = 'Unknown service'
             try:
-                data = s.recv(1024)
-                banner = data.decode(errors='ignore').replace('\n', ' ').strip()
-                if not banner:
-                    banner = 'No banner (silent srvice)'
+                if port in [80, 443, 8080]:
+                    s.send(b"HEAD / HTTP/1.1\r\nHost: " + self.target.encode() + b"\r\n\r\n")
+                data = s.recv(1024).decode(errors='ignore')
+                if data:
+                    banner = data.replace('\n', ' ').replace('\r', '').strip()
+                    for line in data.split('\n'):
+                        clean_line = line.strip()
+                        if clean_line.lower().startswith('server:'):
+                            banner = clean_line[7:].strip()
+                            break
+                else:
+                    banner = 'No banner (silent service)'
             except:
                 banner = 'No banner response'
             self.open_ports.append((port, service, banner))
